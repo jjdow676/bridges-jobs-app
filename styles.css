@@ -462,6 +462,10 @@ html, body {
     padding: 20px;
 }
 
+.modal[hidden] {
+    display: none;
+}
+
 .modal-backdrop {
     position: absolute;
     top: 0;
