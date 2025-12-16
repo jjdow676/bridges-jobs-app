@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bridges Jobs - Find Your Next Opportunity</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" type="image/png" href="icons/favicon.png">
+    <meta name="description" content="Find job opportunities through Bridges from School to Work. Entry-level positions perfect for young people starting their careers.">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-content">
+                <img src="icons/bridges-logo.png" alt="Bridges from School to Work" class="logo">
+                <div class="header-title">
+                    <h1>Bridges <span>Jobs</span></h1>
+                    <p class="tagline">Find Your Next Opportunity</p>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Search Section -->
+            <section class="search-section">
+                <div class="search-card">
+                    <h2>Search Jobs</h2>
+                    <form id="search-form" class="search-form">
+                        <div class="search-row">
+                            <div class="form-group">
+                                <label for="keyword">Keywords</label>
+                                <input type="text" id="keyword" placeholder="Job title, company, or keywords">
+                            </div>
+                            <div class="form-group">
+                                <label for="location">Location</label>
+                                <input type="text" id="location" placeholder="City, State, or ZIP">
+                            </div>
+                            <button type="submit" class="search-btn">
+                                <span class="btn-text">Search</span>
+                                <span class="btn-spinner" hidden></span>
+                            </button>
+                        </div>
+
+                        <!-- Advanced Filters (collapsible) -->
+                        <details class="filters-panel">
+                            <summary>More Filters</summary>
+                            <div class="filters-grid">
+                                <div class="form-group">
+                                    <label for="state">State</label>
+                                    <select id="state">
+                                        <option value="">All States</option>
+                                        <option value="DC">Washington DC</option>
+                                        <option value="MD">Maryland</option>
+                                        <option value="VA">Virginia</option>
+                                        <option value="PA">Pennsylvania</option>
+                                        <option value="NY">New York</option>
+                                        <option value="NJ">New Jersey</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="employment-type">Employment Type</label>
+                                    <select id="employment-type">
+                                        <option value="">All Types</option>
+                                        <option value="Full-time">Full-time</option>
+                                        <option value="Part-time">Part-time</option>
+                                        <option value="Contract">Contract</option>
+                                        <option value="Temporary">Temporary</option>
+                                        <option value="Internship">Internship</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="category">Category</label>
+                                    <select id="category">
+                                        <option value="">All Categories</option>
+                                        <option value="Customer Service">Customer Service</option>
+                                        <option value="Retail">Retail</option>
+                                        <option value="Food Service">Food Service</option>
+                                        <option value="Warehouse">Warehouse</option>
+                                        <option value="Administrative">Administrative</option>
+                                        <option value="Hospitality">Hospitality</option>
+                                    </select>
+                                </div>
+                                <div class="form-group checkbox-group">
+                                    <label class="checkbox-label">
+                                        <input type="checkbox" id="remote">
+                                        <span>Remote/Work from Home</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </details>
+                    </form>
+                </div>
+            </section>
+
+            <!-- Results Section -->
+            <section class="results-section">
+                <!-- Results Header -->
+                <div class="results-header" id="results-header" hidden>
+                    <span id="results-count">0 jobs found</span>
+                    <div class="sort-options">
+                        <label for="sort-by">Sort by:</label>
+                        <select id="sort-by">
+                            <option value="date">Most Recent</option>
+                            <option value="title">Job Title</option>
+                            <option value="company">Company</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Loading State -->
+                <div id="loading-state" class="loading-state" hidden>
+                    <div class="loading-spinner"></div>
+                    <p>Searching for jobs...</p>
+                </div>
+
+                <!-- Empty State -->
+                <div id="empty-state" class="empty-state">
+                    <div class="empty-icon">&#128188;</div>
+                    <h3>Find Your Next Job</h3>
+                    <p>Use the search form above to find job opportunities in your area.</p>
+                </div>
+
+                <!-- No Results State -->
+                <div id="no-results-state" class="no-results-state" hidden>
+                    <div class="empty-icon">&#128269;</div>
+                    <h3>No Jobs Found</h3>
+                    <p>Try adjusting your search criteria or broadening your filters.</p>
+                </div>
+
+                <!-- Job Listings -->
+                <div id="job-listings" class="job-listings"></div>
+
+                <!-- Pagination -->
+                <div id="pagination" class="pagination" hidden>
+                    <button id="prev-page" class="page-btn" disabled>Previous</button>
+                    <span id="page-info">Page 1 of 1</span>
+                    <button id="next-page" class="page-btn">Next</button>
+                </div>
+            </section>
+        </main>
+
+        <!-- Job Detail Modal -->
+        <div id="job-modal" class="modal" hidden>
+            <div class="modal-backdrop"></div>
+            <div class="modal-content">
+                <button class="modal-close" aria-label="Close">&times;</button>
+                <div id="job-detail-content">
+                    <!-- Populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="app-footer">
+            <p>&copy; 2024 Bridges from School to Work</p>
+            <p class="footer-links">
+                <a href="https://bridgestowork.org" target="_blank">About Us</a> |
+                <a href="mailto:info@bridgestowork.org">Contact</a>
+            </p>
+        </footer>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
