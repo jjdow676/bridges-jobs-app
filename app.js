@@ -22,8 +22,7 @@ const appState = {
         location: '',
         site: '',
         employmentType: '',
-        category: '',
-        remote: false
+        category: ''
     }
 };
 
@@ -35,7 +34,6 @@ const elements = {
     site: document.getElementById('site'),
     employmentType: document.getElementById('employment-type'),
     category: document.getElementById('category'),
-    remote: document.getElementById('remote'),
     sortBy: document.getElementById('sort-by'),
     resultsHeader: document.getElementById('results-header'),
     resultsCount: document.getElementById('results-count'),
@@ -108,7 +106,6 @@ function loadFiltersFromParams(params) {
     if (params.has('site')) elements.site.value = params.get('site');
     if (params.has('type')) elements.employmentType.value = params.get('type');
     if (params.has('category')) elements.category.value = params.get('category');
-    if (params.has('remote')) elements.remote.checked = params.get('remote') === 'true';
 }
 
 async function searchJobs() {
@@ -118,7 +115,6 @@ async function searchJobs() {
     appState.filters.site = elements.site.value;
     appState.filters.employmentType = elements.employmentType.value;
     appState.filters.category = elements.category.value;
-    appState.filters.remote = elements.remote.checked;
 
     // Show loading
     showLoading(true);
@@ -132,7 +128,6 @@ async function searchJobs() {
     if (appState.filters.site) params.set('city', appState.filters.site);
     if (appState.filters.employmentType) params.set('employmentType', appState.filters.employmentType);
     if (appState.filters.category) params.set('category', appState.filters.category);
-    if (appState.filters.remote) params.set('remote', 'true');
 
     // Handle location - could be city, state, or zip
     if (appState.filters.location) {
@@ -356,8 +351,7 @@ function hasActiveFilters() {
            appState.filters.location ||
            appState.filters.site ||
            appState.filters.employmentType ||
-           appState.filters.category ||
-           appState.filters.remote;
+           appState.filters.category;
 }
 
 // Utility functions
