@@ -11,7 +11,7 @@ const CONFIG = {
 };
 
 // App State
-const state = {
+const appState = {
     jobs: [],
     totalCount: 0,
     currentPage: 1,
@@ -20,7 +20,7 @@ const state = {
     filters: {
         keyword: '',
         location: '',
-        state: '',
+        site: '',
         employmentType: '',
         category: '',
         remote: false
@@ -32,7 +32,7 @@ const elements = {
     searchForm: document.getElementById('search-form'),
     keyword: document.getElementById('keyword'),
     location: document.getElementById('location'),
-    state: document.getElementById('state'),
+    site: document.getElementById('site'),
     employmentType: document.getElementById('employment-type'),
     category: document.getElementById('category'),
     remote: document.getElementById('remote'),
@@ -59,7 +59,7 @@ function init() {
 
     // Check for URL params (for sharing links)
     const params = new URLSearchParams(window.location.search);
-    if (params.has('keyword') || params.has('state') || params.has('location')) {
+    if (params.has('keyword') || params.has('site') || params.has('location')) {
         loadFiltersFromParams(params);
         searchJobs();
     }
@@ -69,21 +69,21 @@ function setupEventListeners() {
     // Search form
     elements.searchForm.addEventListener('submit', (e) => {
         e.preventDefault();
-        state.currentPage = 1;
+        appState.currentPage = 1;
         searchJobs();
     });
 
     // Pagination
     elements.prevPage.addEventListener('click', () => {
-        if (state.currentPage > 1) {
-            state.currentPage--;
+        if (appState.currentPage > 1) {
+            appState.currentPage--;
             searchJobs();
         }
     });
 
     elements.nextPage.addEventListener('click', () => {
-        if (state.currentPage < state.totalPages) {
-            state.currentPage++;
+        if (appState.currentPage < appState.totalPages) {
+            appState.currentPage++;
             searchJobs();
         }
     });
@@ -105,7 +105,7 @@ function setupEventListeners() {
 function loadFiltersFromParams(params) {
     if (params.has('keyword')) elements.keyword.value = params.get('keyword');
     if (params.has('location')) elements.location.value = params.get('location');
-    if (params.has('state')) elements.state.value = params.get('state');
+    if (params.has('site')) elements.site.value = params.get('site');
     if (params.has('type')) elements.employmentType.value = params.get('type');
     if (params.has('category')) elements.category.value = params.get('category');
     if (params.has('remote')) elements.remote.checked = params.get('remote') === 'true';
@@ -113,30 +113,30 @@ function loadFiltersFromParams(params) {
 
 async function searchJobs() {
     // Update filters from form
-    state.filters.keyword = elements.keyword.value.trim();
-    state.filters.location = elements.location.value.trim();
-    state.filters.state = elements.state.value;
-    state.filters.employmentType = elements.employmentType.value;
-    state.filters.category = elements.category.value;
-    state.filters.remote = elements.remote.checked;
+    appState.filters.keyword = elements.keyword.value.trim();
+    appState.filters.location = elements.location.value.trim();
+    appState.filters.site = elements.site.value;
+    appState.filters.employmentType = elements.employmentType.value;
+    appState.filters.category = elements.category.value;
+    appState.filters.remote = elements.remote.checked;
 
     // Show loading
     showLoading(true);
 
     // Build query params
     const params = new URLSearchParams();
-    params.set('page', state.currentPage);
+    params.set('page', appState.currentPage);
     params.set('pageSize', CONFIG.pageSize);
 
-    if (state.filters.keyword) params.set('keyword', state.filters.keyword);
-    if (state.filters.state) params.set('state', state.filters.state);
-    if (state.filters.employmentType) params.set('employmentType', state.filters.employmentType);
-    if (state.filters.category) params.set('category', state.filters.category);
-    if (state.filters.remote) params.set('remote', 'true');
+    if (appState.filters.keyword) params.set('keyword', appState.filters.keyword);
+    if (appState.filters.site) params.set('city', appState.filters.site);
+    if (appState.filters.employmentType) params.set('employmentType', appState.filters.employmentType);
+    if (appState.filters.category) params.set('category', appState.filters.category);
+    if (appState.filters.remote) params.set('remote', 'true');
 
     // Handle location - could be city, state, or zip
-    if (state.filters.location) {
-        const loc = state.filters.location;
+    if (appState.filters.location) {
+        const loc = appState.filters.location;
         if (/^\d{5}$/.test(loc)) {
             params.set('zipCode', loc);
         } else {
@@ -155,9 +155,9 @@ async function searchJobs() {
         const data = await response.json();
 
         if (data.success) {
-            state.jobs = data.jobs || [];
-            state.totalCount = data.totalCount || 0;
-            state.totalPages = data.totalPages || 1;
+            appState.jobs = data.jobs || [];
+            appState.totalCount = data.totalCount || 0;
+            appState.totalPages = data.totalPages || 1;
             sortJobs();
             renderResults();
         } else {
@@ -174,7 +174,7 @@ async function searchJobs() {
 function sortJobs() {
     const sortBy = elements.sortBy.value;
 
-    state.jobs.sort((a, b) => {
+    appState.jobs.sort((a, b) => {
         switch (sortBy) {
             case 'title':
                 return (a.title || '').localeCompare(b.title || '');
@@ -188,14 +188,14 @@ function sortJobs() {
 }
 
 function renderResults() {
-    // Hide all states first
+    // Hide all display states first
     elements.emptyState.hidden = true;
     elements.noResultsState.hidden = true;
     elements.resultsHeader.hidden = true;
     elements.pagination.hidden = true;
     elements.jobListings.innerHTML = '';
 
-    if (state.jobs.length === 0) {
+    if (appState.jobs.length === 0) {
         // Show no results or empty state
         if (hasActiveFilters()) {
             elements.noResultsState.hidden = false;
@@ -207,25 +207,25 @@ function renderResults() {
 
     // Show results
     elements.resultsHeader.hidden = false;
-    elements.resultsCount.textContent = `${state.totalCount} job${state.totalCount !== 1 ? 's' : ''} found`;
+    elements.resultsCount.textContent = `${appState.totalCount} job${appState.totalCount !== 1 ? 's' : ''} found`;
 
     renderJobs();
 
     // Pagination
-    if (state.totalPages > 1) {
+    if (appState.totalPages > 1) {
         elements.pagination.hidden = false;
-        elements.pageInfo.textContent = `Page ${state.currentPage} of ${state.totalPages}`;
-        elements.prevPage.disabled = state.currentPage <= 1;
-        elements.nextPage.disabled = state.currentPage >= state.totalPages;
+        elements.pageInfo.textContent = `Page ${appState.currentPage} of ${appState.totalPages}`;
+        elements.prevPage.disabled = appState.currentPage <= 1;
+        elements.nextPage.disabled = appState.currentPage >= appState.totalPages;
     }
 }
 
 function renderJobs() {
-    elements.jobListings.innerHTML = state.jobs.map(job => createJobCard(job)).join('');
+    elements.jobListings.innerHTML = appState.jobs.map(job => createJobCard(job)).join('');
 
     // Add click handlers
     elements.jobListings.querySelectorAll('.job-card').forEach((card, index) => {
-        card.addEventListener('click', () => showJobDetail(state.jobs[index]));
+        card.addEventListener('click', () => showJobDetail(appState.jobs[index]));
     });
 }
 
@@ -332,7 +332,7 @@ function closeModal() {
 }
 
 function showLoading(show) {
-    state.isLoading = show;
+    appState.isLoading = show;
     elements.loadingState.hidden = !show;
 
     const searchBtn = elements.searchForm.querySelector('.search-btn');
@@ -352,12 +352,12 @@ function showError(message) {
 }
 
 function hasActiveFilters() {
-    return state.filters.keyword ||
-           state.filters.location ||
-           state.filters.state ||
-           state.filters.employmentType ||
-           state.filters.category ||
-           state.filters.remote;
+    return appState.filters.keyword ||
+           appState.filters.location ||
+           appState.filters.site ||
+           appState.filters.employmentType ||
+           appState.filters.category ||
+           appState.filters.remote;
 }
 
 // Utility functions
