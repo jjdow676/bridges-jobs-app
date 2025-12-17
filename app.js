@@ -207,11 +207,8 @@ async function searchJobs() {
             appState.totalPages = data.totalPages || 1;
 
             // Calculate distance for each job if participant location is available
+            // Note: Distance only calculated for jobs with precise coordinates from API
             if (appState.participantZip || appState.participantCity || appState.participantCoords) {
-                // First, geocode any job zip codes we don't have coordinates for
-                await geocodeJobLocations(appState.jobs);
-
-                // Then calculate distances
                 appState.jobs.forEach(job => {
                     job.distance = getJobDistance(appState.participantZip, appState.participantCity, job);
                 });
@@ -297,7 +294,15 @@ function createJobCard(job) {
     const postedDate = job.postedDate ? formatDate(job.postedDate) : 'Recently';
     const salary = formatSalary(job.salaryMin, job.salaryMax);
     const description = truncate(stripHtml(job.description || ''), 150);
-    const distanceDisplay = job.distance !== null && job.distance !== undefined ? formatDistance(job.distance) : '';
+
+    // Only show distance if job has precise coordinates from API
+    const hasJobCoords = job.latitude && job.longitude;
+    const distanceDisplay = hasJobCoords && job.distance !== null && job.distance !== undefined
+        ? formatDistance(job.distance) + ' from you'
+        : '';
+    const noAddressBadge = !hasJobCoords && appState.participantCoords
+        ? '<span class="badge badge-no-address">Address not listed</span>'
+        : '';
 
     return `
         <article class="job-card" data-id="${job.id}">
@@ -308,7 +313,7 @@ function createJobCard(job) {
                 </div>
                 <div class="job-badges">
                     ${job.topEmployer ? '<span class="badge badge-top-employer">Top Employer</span>' : ''}
-                    ${distanceDisplay ? `<span class="badge badge-distance">${distanceDisplay}</span>` : ''}
+                    ${distanceDisplay ? `<span class="badge badge-distance">${distanceDisplay}</span>` : noAddressBadge}
                     ${job.employmentType ? `<span class="badge badge-primary">${escapeHtml(job.employmentType)}</span>` : ''}
                     ${job.remoteFriendly ? '<span class="badge badge-remote">Remote</span>' : ''}
                 </div>
@@ -345,7 +350,15 @@ function createJobCard(job) {
 function showJobDetail(job) {
     const salary = formatSalary(job.salaryMin, job.salaryMax);
     const postedDate = job.postedDate ? formatDate(job.postedDate) : 'Recently';
-    const distanceDisplay = job.distance !== null && job.distance !== undefined ? formatDistance(job.distance) : '';
+
+    // Only show distance if job has precise coordinates from API
+    const hasJobCoords = job.latitude && job.longitude;
+    const distanceDisplay = hasJobCoords && job.distance !== null && job.distance !== undefined
+        ? formatDistance(job.distance) + ' from you'
+        : '';
+    const noAddressText = !hasJobCoords && appState.participantCoords
+        ? ' (Address not listed on posting)'
+        : '';
 
     elements.modalContent.innerHTML = `
         <div class="job-detail-header">
@@ -353,7 +366,7 @@ function showJobDetail(job) {
             <p class="job-detail-company">${escapeHtml(job.company || 'Company')}</p>
             <div class="job-detail-meta">
                 ${job.location || job.city ? `
-                    <span>&#128205; ${escapeHtml(job.location || `${job.city}, ${job.state}`)}${distanceDisplay ? ` (${distanceDisplay} away)` : ''}</span>
+                    <span>&#128205; ${escapeHtml(job.location || `${job.city}, ${job.state}`)}${distanceDisplay ? ` (${distanceDisplay})` : noAddressText}</span>
                 ` : ''}
                 ${job.employmentType ? `<span>&#128188; ${escapeHtml(job.employmentType)}</span>` : ''}
                 ${salary ? `<span>&#128176; ${salary}</span>` : ''}

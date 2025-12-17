@@ -618,17 +618,22 @@ function toRad(deg) {
     return deg * (Math.PI / 180);
 }
 
-// Cache for geocoded job locations
-const jobCoordsCache = {};
 
 /**
  * Get distance between participant location and job location
+ * Only calculates distance if job has precise coordinates from API
  * @param {string} participantZip - Participant's zip code
  * @param {string} participantCity - Participant's city/site (fallback)
  * @param {object} job - Job object with latitude, longitude, city, state, zipCode
  * @returns {number|null} - Distance in miles or null if can't calculate
  */
 function getJobDistance(participantZip, participantCity, job) {
+    // Only calculate distance if job has precise coordinates from API
+    // This prevents misleading distances based on city/zip code centroids
+    if (!job.latitude || !job.longitude) {
+        return null;
+    }
+
     // First, use geocoded participant coordinates if available (most accurate)
     let participantCoords = appState.participantCoords;
 
@@ -644,85 +649,13 @@ function getJobDistance(participantZip, participantCity, job) {
 
     if (!participantCoords) return null;
 
-    // First, check if job has latitude/longitude from API (most accurate)
-    let jobCoords = null;
-    if (job.latitude && job.longitude) {
-        jobCoords = { lat: job.latitude, lng: job.longitude };
-    }
-
-    // Check if we've already geocoded this job's zip code
-    if (!jobCoords && job.zipCode && jobCoordsCache[job.zipCode]) {
-        jobCoords = jobCoordsCache[job.zipCode];
-    }
-
-    // Fall back to job zip code lookup from static table
-    if (!jobCoords && job.zipCode) {
-        jobCoords = getZipCoords(job.zipCode);
-    }
-
-    // Fall back to city coordinates
-    if (!jobCoords && job.city) {
-        jobCoords = getCityCoords(job.city);
-    }
-
-    // Fall back to parsing location string (e.g., "Atlanta, Georgia, USA")
-    if (!jobCoords && job.location) {
-        const locationParts = job.location.split(',').map(p => p.trim().toLowerCase());
-        for (const part of locationParts) {
-            jobCoords = getCityCoords(part);
-            if (jobCoords) break;
-        }
-    }
-
-    if (!jobCoords) return null;
+    // Use job's API coordinates
+    const jobCoords = { lat: job.latitude, lng: job.longitude };
 
     return calculateDistance(
         participantCoords.lat, participantCoords.lng,
         jobCoords.lat, jobCoords.lng
     );
-}
-
-/**
- * Geocode job zip codes that are not in our static lookup table
- * Uses US Census Geocoding API (free, no API key required)
- * @param {Array} jobs - Array of job objects
- * @returns {Promise<void>}
- */
-async function geocodeJobLocations(jobs) {
-    // Collect unique zip codes that need geocoding
-    const zipsToGeocode = new Set();
-
-    for (const job of jobs) {
-        // Skip if job has coordinates from API
-        if (job.latitude && job.longitude) continue;
-
-        // Skip if zip is already in cache or static lookup
-        if (job.zipCode && !jobCoordsCache[job.zipCode] && !getZipCoords(job.zipCode)) {
-            zipsToGeocode.add(job.zipCode);
-        }
-    }
-
-    // Geocode each unique zip code (limit to avoid too many requests)
-    const zipsArray = Array.from(zipsToGeocode).slice(0, 20);
-
-    for (const zip of zipsArray) {
-        try {
-            const url = `https://geocoding.geo.census.gov/geocoder/locations/onelineaddress?address=${zip}&benchmark=Public_AR_Current&format=json`;
-            const response = await fetch(url);
-            const data = await response.json();
-
-            if (data.result?.addressMatches?.length > 0) {
-                const match = data.result.addressMatches[0];
-                jobCoordsCache[zip] = {
-                    lat: match.coordinates.y,
-                    lng: match.coordinates.x
-                };
-                console.log(`Geocoded zip ${zip}:`, jobCoordsCache[zip]);
-            }
-        } catch (error) {
-            console.warn(`Failed to geocode zip ${zip}:`, error);
-        }
-    }
 }
 
 /**
