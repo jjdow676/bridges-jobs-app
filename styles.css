@@ -356,6 +356,12 @@ html, body {
     color: var(--success);
 }
 
+.badge-distance {
+    background: #fff3e0;
+    color: #e65100;
+    font-weight: 600;
+}
+
 .job-meta {
     display: flex;
     flex-wrap: wrap;

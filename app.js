@@ -17,6 +17,8 @@ const appState = {
     currentPage: 1,
     totalPages: 1,
     isLoading: false,
+    participantZip: '', // Participant's zip code for distance calculation
+    participantCity: '', // Participant's city/site for distance fallback
     filters: {
         keyword: '',
         location: '',
@@ -106,6 +108,13 @@ function loadFiltersFromParams(params) {
     if (params.has('site')) elements.site.value = params.get('site');
     if (params.has('type')) elements.employmentType.value = params.get('type');
     if (params.has('category')) elements.category.value = params.get('category');
+    // Load participant location for distance calculation
+    if (params.has('participantZip')) {
+        appState.participantZip = params.get('participantZip');
+    }
+    if (params.has('participantCity')) {
+        appState.participantCity = params.get('participantCity');
+    }
 }
 
 async function searchJobs() {
@@ -153,6 +162,14 @@ async function searchJobs() {
             appState.jobs = data.jobs || [];
             appState.totalCount = data.totalCount || 0;
             appState.totalPages = data.totalPages || 1;
+
+            // Calculate distance for each job if participant location is available
+            if (appState.participantZip || appState.participantCity) {
+                appState.jobs.forEach(job => {
+                    job.distance = getJobDistance(appState.participantZip, appState.participantCity, job);
+                });
+            }
+
             sortJobs();
             renderResults();
         } else {
@@ -175,6 +192,11 @@ function sortJobs() {
                 return (a.title || '').localeCompare(b.title || '');
             case 'company':
                 return (a.company || '').localeCompare(b.company || '');
+            case 'distance':
+                // Sort by distance (closest first), jobs without distance go to end
+                const distA = a.distance !== null && a.distance !== undefined ? a.distance : Infinity;
+                const distB = b.distance !== null && b.distance !== undefined ? b.distance : Infinity;
+                return distA - distB;
             case 'date':
             default:
                 return new Date(b.postedDate || 0) - new Date(a.postedDate || 0);
@@ -228,6 +250,7 @@ function createJobCard(job) {
     const postedDate = job.postedDate ? formatDate(job.postedDate) : 'Recently';
     const salary = formatSalary(job.salaryMin, job.salaryMax);
     const description = truncate(stripHtml(job.description || ''), 150);
+    const distanceDisplay = job.distance !== null && job.distance !== undefined ? formatDistance(job.distance) : '';
 
     return `
         <article class="job-card" data-id="${job.id}">
@@ -237,6 +260,7 @@ function createJobCard(job) {
                     <p class="job-company">${escapeHtml(job.company || 'Company')}</p>
                 </div>
                 <div class="job-badges">
+                    ${distanceDisplay ? `<span class="badge badge-distance">${distanceDisplay}</span>` : ''}
                     ${job.employmentType ? `<span class="badge badge-primary">${escapeHtml(job.employmentType)}</span>` : ''}
                     ${job.remoteFriendly ? '<span class="badge badge-remote">Remote</span>' : ''}
                 </div>
@@ -273,6 +297,7 @@ function createJobCard(job) {
 function showJobDetail(job) {
     const salary = formatSalary(job.salaryMin, job.salaryMax);
     const postedDate = job.postedDate ? formatDate(job.postedDate) : 'Recently';
+    const distanceDisplay = job.distance !== null && job.distance !== undefined ? formatDistance(job.distance) : '';
 
     elements.modalContent.innerHTML = `
         <div class="job-detail-header">
@@ -280,7 +305,7 @@ function showJobDetail(job) {
             <p class="job-detail-company">${escapeHtml(job.company || 'Company')}</p>
             <div class="job-detail-meta">
                 ${job.location || job.city ? `
-                    <span>&#128205; ${escapeHtml(job.location || `${job.city}, ${job.state}`)}</span>
+                    <span>&#128205; ${escapeHtml(job.location || `${job.city}, ${job.state}`)}${distanceDisplay ? ` (${distanceDisplay} away)` : ''}</span>
                 ` : ''}
                 ${job.employmentType ? `<span>&#128188; ${escapeHtml(job.employmentType)}</span>` : ''}
                 ${salary ? `<span>&#128176; ${salary}</span>` : ''}
