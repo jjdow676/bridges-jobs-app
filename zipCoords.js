@@ -618,6 +618,9 @@ function toRad(deg) {
     return deg * (Math.PI / 180);
 }
 
+// Cache for geocoded job locations
+const jobCoordsCache = {};
+
 /**
  * Get distance between participant location and job location
  * @param {string} participantZip - Participant's zip code
@@ -647,8 +650,13 @@ function getJobDistance(participantZip, participantCity, job) {
         jobCoords = { lat: job.latitude, lng: job.longitude };
     }
 
-    // Fall back to job zip code lookup
-    if (!jobCoords) {
+    // Check if we've already geocoded this job's zip code
+    if (!jobCoords && job.zipCode && jobCoordsCache[job.zipCode]) {
+        jobCoords = jobCoordsCache[job.zipCode];
+    }
+
+    // Fall back to job zip code lookup from static table
+    if (!jobCoords && job.zipCode) {
         jobCoords = getZipCoords(job.zipCode);
     }
 
@@ -672,6 +680,49 @@ function getJobDistance(participantZip, participantCity, job) {
         participantCoords.lat, participantCoords.lng,
         jobCoords.lat, jobCoords.lng
     );
+}
+
+/**
+ * Geocode job zip codes that are not in our static lookup table
+ * Uses US Census Geocoding API (free, no API key required)
+ * @param {Array} jobs - Array of job objects
+ * @returns {Promise<void>}
+ */
+async function geocodeJobLocations(jobs) {
+    // Collect unique zip codes that need geocoding
+    const zipsToGeocode = new Set();
+
+    for (const job of jobs) {
+        // Skip if job has coordinates from API
+        if (job.latitude && job.longitude) continue;
+
+        // Skip if zip is already in cache or static lookup
+        if (job.zipCode && !jobCoordsCache[job.zipCode] && !getZipCoords(job.zipCode)) {
+            zipsToGeocode.add(job.zipCode);
+        }
+    }
+
+    // Geocode each unique zip code (limit to avoid too many requests)
+    const zipsArray = Array.from(zipsToGeocode).slice(0, 20);
+
+    for (const zip of zipsArray) {
+        try {
+            const url = `https://geocoding.geo.census.gov/geocoder/locations/onelineaddress?address=${zip}&benchmark=Public_AR_Current&format=json`;
+            const response = await fetch(url);
+            const data = await response.json();
+
+            if (data.result?.addressMatches?.length > 0) {
+                const match = data.result.addressMatches[0];
+                jobCoordsCache[zip] = {
+                    lat: match.coordinates.y,
+                    lng: match.coordinates.x
+                };
+                console.log(`Geocoded zip ${zip}:`, jobCoordsCache[zip]);
+            }
+        } catch (error) {
+            console.warn(`Failed to geocode zip ${zip}:`, error);
+        }
+    }
 }
 
 /**

@@ -207,7 +207,11 @@ async function searchJobs() {
             appState.totalPages = data.totalPages || 1;
 
             // Calculate distance for each job if participant location is available
-            if (appState.participantZip || appState.participantCity) {
+            if (appState.participantZip || appState.participantCity || appState.participantCoords) {
+                // First, geocode any job zip codes we don't have coordinates for
+                await geocodeJobLocations(appState.jobs);
+
+                // Then calculate distances
                 appState.jobs.forEach(job => {
                     job.distance = getJobDistance(appState.participantZip, appState.participantCity, job);
                 });
