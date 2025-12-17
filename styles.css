@@ -362,6 +362,30 @@ html, body {
     font-weight: 600;
 }
 
+.badge-top-employer {
+    background: #fce4ec;
+    color: #c2185b;
+    font-weight: 600;
+}
+
+/* Top Employers Section */
+.top-employers-section {
+    margin-top: 16px;
+    padding: 12px 16px;
+    background: var(--primary-light);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--primary);
+}
+
+.top-employers-section .checkbox-label {
+    font-weight: 500;
+    color: var(--primary-dark);
+}
+
+.top-employers-section .checkbox-text {
+    font-size: 0.95rem;
+}
+
 .job-meta {
     display: flex;
     flex-wrap: wrap;

@@ -22,12 +22,14 @@ const appState = {
     participantState: '', // Participant's state
     participantStreet: '', // Participant's street address for precise geocoding
     participantCoords: null, // Geocoded coordinates {lat, lng}
+    participantSite: '', // Participant's Bridges site for top employer filtering
     filters: {
         keyword: '',
         location: '',
         site: '',
         employmentType: '',
-        category: ''
+        category: '',
+        topEmployersOnly: false
     }
 };
 
@@ -40,6 +42,8 @@ const elements = {
     employmentType: document.getElementById('employment-type'),
     category: document.getElementById('category'),
     sortBy: document.getElementById('sort-by'),
+    topEmployersToggle: document.getElementById('top-employers-toggle'),
+    topEmployersOnly: document.getElementById('top-employers-only'),
     resultsHeader: document.getElementById('results-header'),
     resultsCount: document.getElementById('results-count'),
     loadingState: document.getElementById('loading-state'),
@@ -117,7 +121,10 @@ function setupEventListeners() {
 async function loadFiltersFromParams(params) {
     if (params.has('keyword')) elements.keyword.value = params.get('keyword');
     if (params.has('location')) elements.location.value = params.get('location');
-    if (params.has('site')) elements.site.value = params.get('site');
+    if (params.has('site')) {
+        elements.site.value = params.get('site');
+        appState.participantSite = params.get('site');
+    }
     if (params.has('type')) elements.employmentType.value = params.get('type');
     if (params.has('category')) elements.category.value = params.get('category');
 
@@ -139,6 +146,11 @@ async function loadFiltersFromParams(params) {
     if (appState.participantStreet || appState.participantCity || appState.participantZip) {
         appState.participantCoords = await geocodeParticipantAddress();
     }
+
+    // Show top employers toggle if participant site is set
+    if (appState.participantSite) {
+        elements.topEmployersToggle.hidden = false;
+    }
 }
 
 async function searchJobs() {
@@ -148,6 +160,7 @@ async function searchJobs() {
     appState.filters.site = elements.site.value;
     appState.filters.employmentType = elements.employmentType.value;
     appState.filters.category = elements.category.value;
+    appState.filters.topEmployersOnly = elements.topEmployersOnly.checked;
 
     // Show loading
     showLoading(true);
@@ -161,6 +174,12 @@ async function searchJobs() {
     if (appState.filters.site) params.set('city', appState.filters.site);
     if (appState.filters.employmentType) params.set('employmentType', appState.filters.employmentType);
     if (appState.filters.category) params.set('category', appState.filters.category);
+
+    // Top employers filter - use participant's site for association
+    if (appState.filters.topEmployersOnly && appState.participantSite) {
+        params.set('topEmployers', 'true');
+        params.set('associatedSite', appState.participantSite);
+    }
 
     // Handle location - could be city, state, or zip
     if (appState.filters.location) {
@@ -284,6 +303,7 @@ function createJobCard(job) {
                     <p class="job-company">${escapeHtml(job.company || 'Company')}</p>
                 </div>
                 <div class="job-badges">
+                    ${job.topEmployer ? '<span class="badge badge-top-employer">Top Employer</span>' : ''}
                     ${distanceDisplay ? `<span class="badge badge-distance">${distanceDisplay}</span>` : ''}
                     ${job.employmentType ? `<span class="badge badge-primary">${escapeHtml(job.employmentType)}</span>` : ''}
                     ${job.remoteFriendly ? '<span class="badge badge-remote">Remote</span>' : ''}
@@ -400,7 +420,8 @@ function hasActiveFilters() {
            appState.filters.location ||
            appState.filters.site ||
            appState.filters.employmentType ||
-           appState.filters.category;
+           appState.filters.category ||
+           appState.filters.topEmployersOnly;
 }
 
 // Utility functions
