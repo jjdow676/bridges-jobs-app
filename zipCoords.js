@@ -626,11 +626,19 @@ function toRad(deg) {
  * @returns {number|null} - Distance in miles or null if can't calculate
  */
 function getJobDistance(participantZip, participantCity, job) {
-    // Get participant coordinates - try zip first, then city
-    let participantCoords = getZipCoords(participantZip);
+    // First, use geocoded participant coordinates if available (most accurate)
+    let participantCoords = appState.participantCoords;
+
+    // Fall back to zip code lookup
+    if (!participantCoords && participantZip) {
+        participantCoords = getZipCoords(participantZip);
+    }
+
+    // Fall back to city lookup
     if (!participantCoords && participantCity) {
         participantCoords = getCityCoords(participantCity);
     }
+
     if (!participantCoords) return null;
 
     // First, check if job has latitude/longitude from API (most accurate)
@@ -680,4 +688,55 @@ function formatDistance(distance) {
     } else {
         return Math.round(distance) + ' mi';
     }
+}
+
+/**
+ * Geocode participant's address using US Census Geocoding API (free, no API key required)
+ * Falls back to zip code lookup if geocoding fails
+ * @returns {Promise<{lat: number, lng: number}|null>}
+ */
+async function geocodeParticipantAddress() {
+    const { participantStreet, participantCity, participantState, participantZip } = appState;
+
+    // If we have a full address, try the Census geocoder for precise coordinates
+    if (participantStreet && participantCity && participantState) {
+        try {
+            const address = encodeURIComponent(`${participantStreet}, ${participantCity}, ${participantState} ${participantZip || ''}`);
+            const url = `https://geocoding.geo.census.gov/geocoder/locations/onelineaddress?address=${address}&benchmark=Public_AR_Current&format=json`;
+
+            const response = await fetch(url);
+            const data = await response.json();
+
+            if (data.result?.addressMatches?.length > 0) {
+                const match = data.result.addressMatches[0];
+                console.log('Geocoded participant address:', match.matchedAddress);
+                return {
+                    lat: match.coordinates.y,
+                    lng: match.coordinates.x
+                };
+            }
+        } catch (error) {
+            console.warn('Census geocoding failed, falling back to zip lookup:', error);
+        }
+    }
+
+    // Fall back to zip code lookup
+    if (participantZip) {
+        const zipCoords = getZipCoords(participantZip);
+        if (zipCoords) {
+            console.log('Using zip code coordinates for participant');
+            return zipCoords;
+        }
+    }
+
+    // Fall back to city lookup
+    if (participantCity) {
+        const cityCoords = getCityCoords(participantCity);
+        if (cityCoords) {
+            console.log('Using city coordinates for participant');
+            return cityCoords;
+        }
+    }
+
+    return null;
 }

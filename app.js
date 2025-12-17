@@ -18,7 +18,10 @@ const appState = {
     totalPages: 1,
     isLoading: false,
     participantZip: '', // Participant's zip code for distance calculation
-    participantCity: '', // Participant's city/site for distance fallback
+    participantCity: '', // Participant's city for distance fallback
+    participantState: '', // Participant's state
+    participantStreet: '', // Participant's street address for precise geocoding
+    participantCoords: null, // Geocoded coordinates {lat, lng}
     filters: {
         keyword: '',
         location: '',
@@ -54,13 +57,22 @@ const elements = {
 // Initialize app
 document.addEventListener('DOMContentLoaded', init);
 
-function init() {
+async function init() {
     setupEventListeners();
 
-    // Check for URL params (for sharing links)
+    // Check for URL params (for sharing links or participant context)
     const params = new URLSearchParams(window.location.search);
+
+    // Load participant address params for distance calculation (even if no search filters)
+    if (params.has('participantZip') || params.has('participantCity') || params.has('participantStreet')) {
+        await loadFiltersFromParams(params);
+    }
+
+    // Auto-search if search filters provided
     if (params.has('keyword') || params.has('site') || params.has('location')) {
-        loadFiltersFromParams(params);
+        if (!params.has('participantZip') && !params.has('participantCity')) {
+            await loadFiltersFromParams(params);
+        }
         searchJobs();
     }
 }
@@ -102,18 +114,30 @@ function setupEventListeners() {
     });
 }
 
-function loadFiltersFromParams(params) {
+async function loadFiltersFromParams(params) {
     if (params.has('keyword')) elements.keyword.value = params.get('keyword');
     if (params.has('location')) elements.location.value = params.get('location');
     if (params.has('site')) elements.site.value = params.get('site');
     if (params.has('type')) elements.employmentType.value = params.get('type');
     if (params.has('category')) elements.category.value = params.get('category');
-    // Load participant location for distance calculation
-    if (params.has('participantZip')) {
-        appState.participantZip = params.get('participantZip');
+
+    // Load participant address for distance calculation
+    if (params.has('participantStreet')) {
+        appState.participantStreet = params.get('participantStreet');
     }
     if (params.has('participantCity')) {
         appState.participantCity = params.get('participantCity');
+    }
+    if (params.has('participantState')) {
+        appState.participantState = params.get('participantState');
+    }
+    if (params.has('participantZip')) {
+        appState.participantZip = params.get('participantZip');
+    }
+
+    // Geocode participant address for precise distance calculation
+    if (appState.participantStreet || appState.participantCity || appState.participantZip) {
+        appState.participantCoords = await geocodeParticipantAddress();
     }
 }
 
