@@ -304,6 +304,9 @@ function createJobCard(job) {
         ? '<span class="badge badge-no-address">Address not listed</span>'
         : '';
 
+    // Build full location display with city, state, and zip when available
+    const locationDisplay = buildLocationDisplay(job);
+
     return `
         <article class="job-card" data-id="${job.id}">
             <div class="job-card-header">
@@ -319,10 +322,10 @@ function createJobCard(job) {
                 </div>
             </div>
             <div class="job-meta">
-                ${job.location || job.city ? `
+                ${locationDisplay ? `
                     <span class="job-meta-item">
                         <span>&#128205;</span>
-                        ${escapeHtml(job.location || `${job.city}, ${job.state}`)}
+                        ${escapeHtml(locationDisplay)}
                     </span>
                 ` : ''}
                 ${salary ? `
@@ -360,13 +363,16 @@ function showJobDetail(job) {
         ? ' (Address not listed on posting)'
         : '';
 
+    // Build full location display with city, state, and zip when available
+    const locationDisplay = buildLocationDisplay(job);
+
     elements.modalContent.innerHTML = `
         <div class="job-detail-header">
             <h2 class="job-detail-title">${escapeHtml(job.title || 'Untitled Position')}</h2>
             <p class="job-detail-company">${escapeHtml(job.company || 'Company')}</p>
             <div class="job-detail-meta">
-                ${job.location || job.city ? `
-                    <span>&#128205; ${escapeHtml(job.location || `${job.city}, ${job.state}`)}${distanceDisplay ? ` (${distanceDisplay})` : noAddressText}</span>
+                ${locationDisplay ? `
+                    <span>&#128205; ${escapeHtml(locationDisplay)}${distanceDisplay ? ` (${distanceDisplay})` : noAddressText}</span>
                 ` : ''}
                 ${job.employmentType ? `<span>&#128188; ${escapeHtml(job.employmentType)}</span>` : ''}
                 ${salary ? `<span>&#128176; ${salary}</span>` : ''}
@@ -442,6 +448,34 @@ function hasActiveFilters() {
 }
 
 // Utility functions
+
+/**
+ * Build a full location display string with city, state, and zip when available
+ * @param {object} job - Job object with location, city, state, zipCode fields
+ * @returns {string} - Formatted location string
+ */
+function buildLocationDisplay(job) {
+    // If we have city and state, build a proper location string
+    if (job.city && job.state) {
+        let location = `${job.city}, ${job.state}`;
+        if (job.zipCode) {
+            location += ` ${job.zipCode}`;
+        }
+        return location;
+    }
+
+    // Fall back to location field if available
+    if (job.location) {
+        // If location exists but we also have a zip code, append it
+        if (job.zipCode && !job.location.includes(job.zipCode)) {
+            return `${job.location} ${job.zipCode}`;
+        }
+        return job.location;
+    }
+
+    return '';
+}
+
 function formatDate(dateStr) {
     if (!dateStr) return '';
     const date = new Date(dateStr);
